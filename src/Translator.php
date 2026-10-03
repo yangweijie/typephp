@@ -1942,9 +1942,14 @@ CODE;
             $moduleHeader = '    STANDARD_MODULE_HEADER,';
         } else {
             $dependencyArray = $moduleName . '_module_deps';
+            // PHP Nano 只启动 php_nano_startup_extensions() 收到的那份数组，而核心模块由
+            // php_nano_startup_core() 单独启动、不在数组里；nano 的依赖检查把数组之外的
+            // REQUIRED 判成 Invalid ⇒ 整个启动 FAILURE。降成 OPTIONAL 后数组里有的仍要求
+            // 先启动（顺序不变），没有的跳过；真正缺的扩展会在链接期以未定义符号暴露。
+            $dependencyMacro = $this->isNanoMode() ? 'ZEND_MOD_OPTIONAL' : 'ZEND_MOD_REQUIRED';
             $code .= PHP_EOL . 'static const zend_module_dep ' . $dependencyArray . '[] = {' . PHP_EOL;
             foreach ($extensionDependencies as $dependency) {
-                $code .= '    ZEND_MOD_REQUIRED(' . $this->genCharPtr($dependency, true) . ')' . PHP_EOL;
+                $code .= '    ' . $dependencyMacro . '(' . $this->genCharPtr($dependency, true) . ')' . PHP_EOL;
             }
             $code .= '    ZEND_MOD_END' . PHP_EOL . '};' . PHP_EOL;
             $moduleHeader = "    STANDARD_MODULE_HEADER_EX,\n    nullptr,\n    {$dependencyArray},";

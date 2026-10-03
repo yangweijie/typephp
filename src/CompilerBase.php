@@ -977,7 +977,11 @@ abstract class CompilerBase implements PropertyAccessContext
 
     public function isPhpBuilderBuild(): bool
     {
-        return $this->phpBuilderEnabled;
+        // --nano 不链接任何 PHP 运行时（php-nano 与 PHPX 的源码直接编进产物），
+        // 因此 `php-builder:` 在这种模式下没有意义：若仍返回 true，tpc 会去现编/下载
+        // 一份私有 embed 运行时，失败即 rc=255。nanoPolicyMode（只做语法/能力限制、仍链
+        // 宿主 libphp）不受影响 —— 那才是 php-builder 该生效的那条路。
+        return $this->phpBuilderEnabled && !$this->isNanoMode();
     }
 
     public function hasSapi(string $sapi): bool
